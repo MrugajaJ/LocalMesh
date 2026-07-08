@@ -45,12 +45,12 @@ public class LocalMeshCli implements Runnable {
             description = "LocalMesh API base URL (default: http://localhost:8080)",
             defaultValue = "http://localhost:8080",
             scope = CommandLine.ScopeType.INHERIT)
-    String apiUrl;
+    public String apiUrl;
 
     @Option(names = {"--verbose", "-v"},
             description = "Enable verbose/debug logging",
             scope = CommandLine.ScopeType.INHERIT)
-    boolean verbose;
+    public boolean verbose;
 
     @Override
     public void run() {

@@ -63,7 +63,7 @@ public class SessionStore {
             .connectTimeout(Duration.ofSeconds(10))
             .build();
 
-    public static Map<?, ?> post(String url, Map<String, Object> body) throws Exception {
+    public static Map<String, Object> post(String url, Map<String, Object> body) throws Exception {
         String json = MAPPER.writeValueAsString(body);
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
@@ -75,10 +75,10 @@ public class SessionStore {
         if (resp.statusCode() >= 400) {
             throw new RuntimeException("API error " + resp.statusCode() + ": " + resp.body());
         }
-        return MAPPER.readValue(resp.body(), Map.class);
+        return MAPPER.readValue(resp.body(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
     }
 
-    public static Map<?, ?> get(String url) throws Exception {
+    public static Map<String, Object> get(String url) throws Exception {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()
@@ -88,7 +88,7 @@ public class SessionStore {
         if (resp.statusCode() >= 400) {
             throw new RuntimeException("API error " + resp.statusCode() + ": " + resp.body());
         }
-        return MAPPER.readValue(resp.body(), Map.class);
+        return MAPPER.readValue(resp.body(), new com.fasterxml.jackson.core.type.TypeReference<Map<String, Object>>() {});
     }
 
     public static void delete(String url) throws Exception {
@@ -100,13 +100,13 @@ public class SessionStore {
         HTTP.send(req, HttpResponse.BodyHandlers.discarding());
     }
 
-    public static java.util.List<?> getList(String url) throws Exception {
+    public static java.util.List<Map<String, Object>> getList(String url) throws Exception {
         HttpRequest req = HttpRequest.newBuilder()
                 .uri(URI.create(url))
                 .GET()
                 .timeout(Duration.ofSeconds(15))
                 .build();
         HttpResponse<String> resp = HTTP.send(req, HttpResponse.BodyHandlers.ofString());
-        return MAPPER.readValue(resp.body(), java.util.List.class);
+        return MAPPER.readValue(resp.body(), new com.fasterxml.jackson.core.type.TypeReference<java.util.List<Map<String, Object>>>() {});
     }
 }

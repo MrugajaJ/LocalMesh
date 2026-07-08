@@ -139,10 +139,13 @@ public class SidecarMain {
         }
     }
 
+    private static final ReconnectPolicy RECONNECT_POLICY = new ReconnectPolicy();
+
     private static void scheduleReconnect(int delaySec) {
-        int nextDelay = Math.min(delaySec * 2, 30);
-        log.info("Reconnecting in {}s...", delaySec);
-        scheduler.schedule(() -> connectWithBackoff(nextDelay), delaySec, TimeUnit.SECONDS);
+        long delayMs = RECONNECT_POLICY.nextDelayMs(ReconnectPolicy.attemptFromLegacyDelaySec(delaySec));
+        int nextDelaySec = (int) Math.min(delaySec * 2, 30);
+        log.info("Reconnecting in {}ms...", delayMs);
+        scheduler.schedule(() -> connectWithBackoff(nextDelaySec), delayMs, TimeUnit.MILLISECONDS);
     }
 
     // ── HTTP proxy handler ────────────────────────────────────────────────────

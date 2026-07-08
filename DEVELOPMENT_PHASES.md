@@ -224,8 +224,8 @@ Lightweight Java 21 sidecar injected into intercepted pods. Accepts HTTP, serial
 | `sidecar/Dockerfile` | ✅ |
 
 ### What's Missing
-- [ ] `ReconnectBackoffTest.java` — verify exponential backoff: 1s, 2s, 4s... max 30s
-- [ ] `GracefulDrainTest.java` — in-flight requests complete before shutdown
+- [x] `ReconnectBackoffTest.java` — verify exponential backoff: 1s, 2s, 4s... max 30s
+- [x] `GracefulDrainTest.java` — in-flight requests complete before shutdown
 
 ### Prompt (Add Missing Tests)
 ```
@@ -252,10 +252,52 @@ Extend SidecarTest.java with:
 Use JUnit 5 only. Use Mockito for gRPC stub mocking.
 ```
 
+### Test Execution Report — `.\mvnw.cmd -f sidecar/pom.xml test`
+
+**Run date:** 2026-07-08 | **Result:** `Tests run: 14, Failures: 0, Errors: 0, Skipped: 0`
+
+#### ✅ PASSING — 14 tests
+
+##### `GracefulDrainTest` — 1 test PASS
+Tests the HTTP server shutdown logic ensuring in-flight requests finish cleanly.
+
+| # | Test Name | Result |
+|---|---|---|
+| 1 | `In-flight requests complete before shutdown and new requests are rejected` | ✅ PASS |
+
+##### `ReconnectBackoffTest` — 5 tests PASS
+Tests the `ReconnectPolicy` exponential backoff logic (1s → 2s → 4s ... max 30s).
+
+| # | Test Name | Result |
+|---|---|---|
+| 1 | `Attempt 0 returns 1000ms delay` | ✅ PASS |
+| 2 | `Attempt 1 returns 2000ms delay` | ✅ PASS |
+| 3 | `Attempt 2 returns 4000ms delay` | ✅ PASS |
+| 4 | `Attempt 5+ returns max delay of 30000ms` | ✅ PASS |
+| 5 | `Legacy conversion returns correct attempts` | ✅ PASS |
+
+##### `SidecarTest` — 8 tests PASS
+Tests `TunnelFrame` serialization, deserialization, and HTTP logic translations.
+
+| # | Test Name | Result |
+|---|---|---|
+| 1 | `TunnelFrame serialisation roundtrip preserves all fields` | ✅ PASS |
+| 2 | `TunnelFrame with response fields preserves status code and latency` | ✅ PASS |
+| 3 | `Exponential backoff doubles delay up to maximum of 30s` | ✅ PASS |
+| 4 | `In-flight counter correctly tracks request lifecycle` | ✅ PASS |
+| 5 | `Accepting flag stops new requests from being served` | ✅ PASS |
+| 6 | `Pending future is resolved when response arrives` | ✅ PASS |
+| 7 | `HTTP GET with headers translates correctly to REQUEST TunnelFrame` | ✅ PASS |
+| 8 | `RESPONSE TunnelFrame translates correctly to HTTP response` | ✅ PASS |
+
+---
+
 ### Acceptance Criteria
-- [ ] `mvn test` in `sidecar/` passes all test classes
-- [ ] `docker build -t localmesh/sidecar:latest sidecar/` succeeds
-- [ ] Sidecar `GET /health` returns 200
+- [x] `mvn test` in `sidecar/` passes all test classes
+- [x] `docker build -t localmesh/sidecar:latest sidecar/` succeeds
+- [x] Sidecar `GET /health` returns 200
+
+**Phase 3 verdict: ✅ Complete**
 
 ---
 
@@ -275,11 +317,11 @@ Tool developers run locally. `connect`, `intercept`, `status`, `disconnect`. Hos
 | `cli/cmd/StatusCommand.java` | ✅ |
 | `cli/tunnel/LocalTunnelServer.java` | ✅ |
 | `cli/localmesh` bash wrapper | ✅ |
-| `test/.../SessionPersistenceSpec.groovy` | ⚠️ Only 1 spec |
+| `test/.../SessionPersistenceSpec.groovy` | ✅ 3 specs (Session, Parsing, Deserialization) |
 
 ### What's Missing
-- [ ] `TunnelFrameDeserializationSpec.groovy`
-- [ ] `CliArgParsingSpec.groovy`
+- [x] `TunnelFrameDeserializationSpec.groovy`
+- [x] `CliArgParsingSpec.groovy`
 
 ### Prompt (Add Missing Tests)
 ```
@@ -303,11 +345,21 @@ Use Picocli's CommandLine.execute() to drive tests. Mock HTTP calls.
 Keep SessionPersistenceSpec.groovy unchanged.
 ```
 
+### Phase 4 Test Execution Report
+
+| Test Class | Objective | Result | Notes |
+|---|---|---|---|
+| `TunnelFrameDeserializationSpec` | Verify gRPC to HTTP HTTP translation/draining via Mocked HttpClient. | ✅ Pass (1/1) | Required `byte-buddy` & Java reflection for asynchronous `final` field mocking over `VirtualThread`s. |
+| `CliArgParsingSpec` | Verify Picocli CLI argument parsing logic, exit codes, and global options. | ✅ Pass (4/4) | Confirms `--api-url`, `--verbose`, missing args usage output and subcommand population. |
+| `SessionPersistenceSpec` | Verify writing, loading, deleting, and serializing `~/.localmesh/session.json`. | ✅ Pass (4/4) | Maintained existing robust coverage. |
+
+**Total:** 9/9 Specs Passing in `cli` Module.
+
 ### Acceptance Criteria
-- [ ] `mvn test` in `cli/` passes all specs
-- [ ] `mvn package` produces `cli/target/localmesh-cli.jar`
-- [ ] `java -jar cli/target/localmesh-cli.jar --help` works
-- [ ] `./cli/localmesh --help` works via bash wrapper
+- [x] `mvn test` in `cli/` passes all specs
+- [x] `mvn package` produces `cli/target/localmesh-cli.jar`
+- [x] `java -jar cli/target/localmesh-cli.jar --help` works
+- [x] `./cli/localmesh --help` works via bash wrapper
 
 ---
 
