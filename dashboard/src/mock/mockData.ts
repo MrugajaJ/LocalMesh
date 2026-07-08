@@ -1,7 +1,7 @@
 // ── Mock data for VITE_MOCK=true mode ────────────────────────────────────────
 // Simulates 3 services with live traffic so the dashboard can demo without a cluster.
 
-import type { Intercept, TrafficEvent, Topology, LiveEvent } from '../types';
+import type { Intercept, TrafficEvent, Topology } from '../types';
 
 export const MOCK_INTERCEPTS: Intercept[] = [
   {

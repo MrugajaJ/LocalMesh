@@ -9,7 +9,7 @@ const API_BASE  = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
 // ── REST API helpers ──────────────────────────────────────────────────────────
 
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+export async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(API_BASE + path, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
@@ -102,9 +102,16 @@ export function useTopology() {
  * Returns a cleanup function.
  */
 export function subscribeToLiveEvents(
-  onEvent: (event: Record<string, unknown>) => void
+  onEvent: (event: Record<string, unknown>) => void,
+  onReconnectState?: (state: 'connected' | 'reconnecting' | 'disconnected') => void
 ): () => void {
+  let isClosed = false;
+  let source: EventSource | null = null;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let attempt = 0;
+
   if (IS_MOCK) {
+    onReconnectState?.('connected');
     // In mock mode, generate synthetic events on a timer
     const timer = setInterval(() => {
       onEvent({
@@ -116,15 +123,41 @@ export function subscribeToLiveEvents(
         timestamp:    Date.now().toString(),
       });
     }, 1000);
-    return () => clearInterval(timer);
+    return () => { isClosed = true; clearInterval(timer); onReconnectState?.('disconnected'); };
   }
 
-  const source = new EventSource(API_BASE + '/api/metrics/live');
-  source.onmessage = (e) => {
-    try { onEvent(JSON.parse(e.data)); } catch { /* ignore */ }
+  function connect() {
+    if (isClosed) return;
+    source = new EventSource(API_BASE + '/api/metrics/live');
+    
+    source.onopen = () => {
+      attempt = 0;
+      onReconnectState?.('connected');
+    };
+    
+    source.onmessage = (e) => {
+      try { onEvent(JSON.parse(e.data)); } catch { /* ignore */ }
+    };
+    
+    source.onerror = () => {
+      source?.close();
+      source = null;
+      if (isClosed) return;
+      
+      onReconnectState?.('reconnecting');
+      const backoff = Math.min(1000 * Math.pow(2, attempt), 30000);
+      attempt++;
+      console.warn(`[SSE] Connection error — reconnecting in ${backoff}ms`);
+      reconnectTimer = setTimeout(connect, backoff);
+    };
+  }
+
+  connect();
+
+  return () => {
+    isClosed = true;
+    if (reconnectTimer) clearTimeout(reconnectTimer);
+    source?.close();
+    onReconnectState?.('disconnected');
   };
-  source.onerror = () => {
-    console.warn('[SSE] Connection error — will reconnect automatically');
-  };
-  return () => source.close();
 }

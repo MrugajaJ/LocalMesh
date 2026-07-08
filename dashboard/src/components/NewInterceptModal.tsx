@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import type { Topology } from '../types';
-import { useCreateIntercept } from '../api/client';
+import type { Intercept, Topology } from '../types';
+import { useCreateIntercept, apiFetch } from '../api/client';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface Props {
   onClose:   () => void;
@@ -13,8 +14,10 @@ export function NewInterceptModal({ onClose, topology, sessionId }: Props) {
   const [localPort,   setLocalPort]   = useState('8080');
   const [namespace,   setNamespace]   = useState('default');
   const [statusMsg,   setStatusMsg]   = useState('');
+  const [isPolling,   setIsPolling]   = useState(false);
 
   const createIntercept = useCreateIntercept();
+  const queryClient = useQueryClient();
 
   const serviceNames = topology?.nodes.map(n => n.name) ?? [];
 
@@ -23,18 +26,49 @@ export function NewInterceptModal({ onClose, topology, sessionId }: Props) {
     if (!serviceName || !localPort) return;
 
     setStatusMsg('Injecting sidecar into pod...');
+    setIsPolling(true);
 
     try {
-      await createIntercept.mutateAsync({
+      const created = await createIntercept.mutateAsync({
         sessionId,
         serviceName,
         namespace,
         localPort: parseInt(localPort, 10),
       });
-      setStatusMsg('');
-      onClose();
+      
+      if (import.meta.env.VITE_MOCK === 'true') {
+        setStatusMsg('');
+        setIsPolling(false);
+        onClose();
+        return;
+      }
+
+      let attempts = 0;
+      const poll = setInterval(async () => {
+        attempts++;
+        try {
+          const data = await apiFetch<Intercept>(`/api/intercepts/${created.id}`);
+          if (data.status === 'ACTIVE') {
+            clearInterval(poll);
+            queryClient.invalidateQueries({ queryKey: ['intercepts'] });
+            setStatusMsg('');
+            setIsPolling(false);
+            onClose();
+          }
+        } catch (e) {
+          // ignore error and retry
+        }
+
+        if (attempts >= 30) {
+          clearInterval(poll);
+          setStatusMsg('Error: Intercept timed out. The controller may be unreachable.');
+          setIsPolling(false);
+        }
+      }, 1000);
+
     } catch (err: unknown) {
       setStatusMsg(`Error: ${err instanceof Error ? err.message : String(err)}`);
+      setIsPolling(false);
     }
   };
 
@@ -97,7 +131,7 @@ export function NewInterceptModal({ onClose, topology, sessionId }: Props) {
 
           {statusMsg && (
             <div className="modal-status">
-              {createIntercept.isPending ? (
+              {createIntercept.isPending || isPolling ? (
                 <div className="spinner" />
               ) : (
                 <span style={{ color: statusMsg.startsWith('Error') ? 'var(--red)' : 'var(--text-muted)' }}>●</span>
@@ -113,10 +147,10 @@ export function NewInterceptModal({ onClose, topology, sessionId }: Props) {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={createIntercept.isPending}
+              disabled={createIntercept.isPending || isPolling}
               id="submit-intercept-btn"
             >
-              {createIntercept.isPending ? 'Creating...' : 'Intercept'}
+              {createIntercept.isPending || isPolling ? 'Creating...' : 'Intercept'}
             </button>
           </div>
         </form>

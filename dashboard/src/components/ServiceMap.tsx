@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import type { Topology, TopologyNode } from '../types';
+import type { Topology } from '../types';
 
 interface Props {
   topology:         Topology;
@@ -115,12 +115,13 @@ export function ServiceMap({ topology, interceptedIds, onNodeClick, collapsed, o
       .attr('stroke', '#3fb950')
       .attr('stroke-width', 1.5)
       .attr('opacity', 0)
-      .each(function() {
+      .each(function(d) {
         const el = d3.select(this);
+        const simNode = d as SimNode;
         function pulse() {
-          el.attr('opacity', 0.8).attr('r', function(d: SimNode) { return d.radius + 6; })
+          el.attr('opacity', 0.8).attr('r', simNode.radius + 6)
             .transition().duration(1200).attr('opacity', 0)
-            .attr('r', function(d: SimNode) { return d.radius + 16; })
+            .attr('r', simNode.radius + 16)
             .on('end', pulse);
         }
         pulse();
@@ -182,7 +183,15 @@ export function ServiceMap({ topology, interceptedIds, onNodeClick, collapsed, o
         </span>
       </div>
       {!collapsed && (
-        <svg ref={svgRef} className="service-map-svg" />
+        <>
+          {topology.nodes.length === 0 ? (
+            <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+              No services detected. Generate traffic or check cluster connectivity.
+            </div>
+          ) : (
+            <svg ref={svgRef} className="service-map-svg" />
+          )}
+        </>
       )}
     </div>
   );

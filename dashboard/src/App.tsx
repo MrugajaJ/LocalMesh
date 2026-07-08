@@ -9,7 +9,7 @@ import {
   useIntercepts, useTrafficLog, useTopology,
   useTearDownIntercept, subscribeToLiveEvents,
 } from './api/client';
-import { generateMockTrafficEvent, MOCK_INTERCEPTS } from './mock/mockData';
+import { generateMockTrafficEvent } from './mock/mockData';
 import type { Intercept, TrafficEvent, LiveEvent } from './types';
 import './styles/global.css';
 
@@ -26,6 +26,7 @@ function Dashboard() {
   const [mapCollapsed,        setMapCollapsed]        = useState(false);
   const [liveTraffic,         setLiveTraffic]         = useState<TrafficEvent[]>([]);
   const [intercepts,          setIntercepts]          = useState<Intercept[]>([]);
+  const [sseState,            setSseState]            = useState<'connected' | 'reconnecting' | 'disconnected'>('disconnected');
 
   // React Query data
   const interceptsQuery = useIntercepts();
@@ -48,7 +49,7 @@ function Dashboard() {
   // SSE live events
   useEffect(() => {
     const cleanup = subscribeToLiveEvents((raw) => {
-      const event = raw as LiveEvent;
+      const event = raw as unknown as LiveEvent;
       if (event.type === 'METRICS_UPDATE' && event.interceptId) {
         setIntercepts(prev => prev.map(i =>
           i.id === event.interceptId
@@ -63,7 +64,7 @@ function Dashboard() {
       if (event.type === 'INTERCEPT_ACTIVE' || event.type === 'INTERCEPT_TORN_DOWN') {
         queryClient.invalidateQueries({ queryKey: ['intercepts'] });
       }
-    });
+    }, setSseState);
     return cleanup;
   }, []);
 
@@ -95,7 +96,7 @@ function Dashboard() {
         onSelect={setSelectedInterceptId}
         onTearDown={handleTearDown}
         onNewIntercept={() => setShowModal(true)}
-        connected={!interceptsQuery.isError}
+        connectionState={sseState}
       />
 
       <div className="app-body">
