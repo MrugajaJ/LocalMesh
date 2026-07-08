@@ -1,0 +1,72 @@
+# ===== Java / Maven =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+*.zip
+*.tar.gz
+*.rar
+.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Maven wrapper binary (checked in via make)
+**/mvnw
+**/mvnw.cmd
+
+# ===== IDE =====
+.idea/
+*.iml
+*.ipr
+*.iws
+.eclipse/
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ===== Node / Vite =====
+node_modules/
+dist/
+.vite/
+.cache/
+.parcel-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# ===== Docker =====
+.docker/
+
+# ===== Environment =====
+.env
+.env.local
+.env.*.local
+
+# ===== Generated =====
+generated-sources/
+generated-test-sources/
+dashboard/src/generated/
+
+# ===== Logs =====
+logs/
+*.log
+hs_err_pid*.log
+replay_pid*.log

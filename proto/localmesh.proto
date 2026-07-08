@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package localmesh.v1;
+
+option java_multiple_files = true;
+option java_package = "dev.localmesh.proto";
+option java_outer_classname = "LocalMeshProto";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Tunnel Service — bidirectional gRPC stream between sidecar and CLI
+// ─────────────────────────────────────────────────────────────────────────────
+
+service TunnelService {
+  // Bidirectional stream: sidecar sends REQUEST frames, CLI sends RESPONSE frames
+  rpc ConnectTunnel(stream TunnelFrame) returns (stream TunnelFrame);
+}
+
+// A single unit of tunnelled data (HTTP request or response body + metadata)
+message TunnelFrame {
+  // UUID of the intercept this frame belongs to
+  string intercept_id = 1;
+
+  // Unique request ID for matching requests to responses
+  string request_id = 2;
+
+  // Raw HTTP bytes (request or response)
+  bytes payload = 3;
+
+  // Direction of travel
+  string direction = 4; // "REQUEST" | "RESPONSE"
+
+  // Wall-clock time when the frame was created (epoch ms)
+  int64 timestamp_ms = 5;
+
+  // HTTP metadata (populated on REQUEST frames)
+  string method = 6;
+  string path = 7;
+  map<string, string> headers = 8;
+
+  // HTTP metadata (populated on RESPONSE frames)
+  int32 status_code = 9;
+  int64 latency_ms = 10;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Heartbeat Service — keep-alive pings between sidecar/CLI and controller
+// ─────────────────────────────────────────────────────────────────────────────
+
+service HeartbeatService {
+  rpc Ping(PingRequest) returns (PongResponse);
+}
+
+message PingRequest {
+  string intercept_id = 1;
+  int64 timestamp_ms = 2;
+}
+
+message PongResponse {
+  string intercept_id = 1;
+  int64 timestamp_ms = 2;
+  string status = 3; // "OK" | "UNKNOWN_INTERCEPT"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Metrics Service — sidecar reports traffic telemetry to controller
+// ─────────────────────────────────────────────────────────────────────────────
+
+service MetricsService {
+  rpc ReportTraffic(TrafficReport) returns (TrafficAck);
+}
+
+message TrafficReport {
+  string intercept_id = 1;
+  string request_id = 2;
+  string method = 3;
+  string path = 4;
+  int32 status_code = 5;
+  int64 latency_ms = 6;
+  int64 timestamp_ms = 7;
+}
+
+message TrafficAck {
+  bool accepted = 1;
+}

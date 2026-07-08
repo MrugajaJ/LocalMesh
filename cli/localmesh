@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# LocalMesh CLI wrapper script
+# Place this on your PATH for easy access: cp localmesh /usr/local/bin/
+exec java -jar "$(dirname "$0")/localmesh.jar" "$@"

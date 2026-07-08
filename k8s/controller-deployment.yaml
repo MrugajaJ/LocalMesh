@@ -1,0 +1,108 @@
+---
+# Secret for DB + Redis credentials
+apiVersion: v1
+kind: Secret
+metadata:
+  name: localmesh-secrets
+  namespace: default
+type: Opaque
+stringData:
+  POSTGRES_URL:      "jdbc:postgresql://postgres:5432/localmesh"
+  POSTGRES_USER:     "localmesh"
+  POSTGRES_PASSWORD: "localmesh"
+  REDIS_URL:         "redis://redis:6379"
+
+---
+# LocalMesh Controller Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localmesh-controller
+  namespace: default
+  labels:
+    app: localmesh-controller
+    app.kubernetes.io/part-of: localmesh
+    app.kubernetes.io/component: controller
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: localmesh-controller
+  template:
+    metadata:
+      labels:
+        app: localmesh-controller
+    spec:
+      serviceAccountName: localmesh-controller
+      containers:
+        - name: controller
+          image: localmesh/controller:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8090
+            - name: grpc
+              containerPort: 50051
+          env:
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: POSTGRES_URL
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: POSTGRES_PASSWORD
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: REDIS_URL
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu:    "250m"
+            limits:
+              memory: "512Mi"
+              cpu:    "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 30
+            periodSeconds:       15
+            timeoutSeconds:      5
+            failureThreshold:    3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8090
+            initialDelaySeconds: 15
+            periodSeconds:       10
+
+---
+# Service for the Controller (gRPC + HTTP)
+apiVersion: v1
+kind: Service
+metadata:
+  name: localmesh-controller
+  namespace: default
+  labels:
+    app: localmesh-controller
+spec:
+  selector:
+    app: localmesh-controller
+  ports:
+    - name: http
+      port: 8090
+      targetPort: 8090
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+  type: ClusterIP

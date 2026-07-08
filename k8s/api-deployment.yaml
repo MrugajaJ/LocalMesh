@@ -1,0 +1,86 @@
+---
+# LocalMesh REST API Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: localmesh-api
+  namespace: default
+  labels:
+    app: localmesh-api
+    app.kubernetes.io/part-of: localmesh
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: localmesh-api
+  template:
+    metadata:
+      labels:
+        app: localmesh-api
+    spec:
+      containers:
+        - name: api
+          image: localmesh/api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: POSTGRES_URL
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: POSTGRES_URL
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: POSTGRES_USER
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: POSTGRES_PASSWORD
+            - name: REDIS_URL
+              valueFrom:
+                secretKeyRef:
+                  name: localmesh-secrets
+                  key: REDIS_URL
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu:    "200m"
+            limits:
+              memory: "512Mi"
+              cpu:    "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 20
+            periodSeconds:       15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds:       5
+
+---
+# ClusterIP Service for the REST API
+apiVersion: v1
+kind: Service
+metadata:
+  name: localmesh-api
+  namespace: default
+  labels:
+    app: localmesh-api
+spec:
+  selector:
+    app: localmesh-api
+  ports:
+    - name: http
+      port:       8080
+      targetPort: 8080
+  type: ClusterIP
