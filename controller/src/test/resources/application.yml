@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/localmesh
+    username: localmesh
+    password: localmesh
+    driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: false   # Tests that need Flyway use Testcontainers directly
+  jooq:
+    sql-dialect: POSTGRES
+  autoconfigure:
+    exclude:
+      # Disable Kubernetes client auto-config in test context
+      - org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration
+
+localmesh:
+  redis:
+    uri: redis://localhost:6379
+  grpc:
+    port: 50051
+  controller:
+    heartbeat-timeout-seconds: 30
+    reconcile-interval-seconds: 5
+
+server:
+  port: 0   # random port for tests
