@@ -1,0 +1,29 @@
+---
+# Exposes the Controller's gRPC port (50051) and HTTP port (8090) 
+# via a LoadBalancer so the localmesh CLI on developer laptops can reach it.
+# On Oracle Cloud OKE, this auto-provisions a free OCI Load Balancer.
+apiVersion: v1
+kind: Service
+metadata:
+  name: localmesh-controller-lb
+  namespace: default
+  labels:
+    app: localmesh-controller
+  annotations:
+    # Oracle Cloud: use flexible shape LB (always free tier)
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "10"
+spec:
+  selector:
+    app: localmesh-controller
+  type: LoadBalancer
+  ports:
+    - name: grpc
+      port: 50051
+      targetPort: 50051
+      protocol: TCP
+    - name: http
+      port: 8090
+      targetPort: 8090
+      protocol: TCP

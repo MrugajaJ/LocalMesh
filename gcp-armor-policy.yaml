@@ -1,0 +1,58 @@
+# GCP Cloud Armor security policy — rate limits the API to stay within free tier
+# Docs: https://cloud.google.com/armor/docs/rate-limiting-overview
+#
+# Free tier limits for Cloud Run:
+#   - 2 million requests/month
+#   - 360,000 GB-seconds of memory
+#   - 180,000 vCPU-seconds
+#
+# This policy throttles at ~1500 req/min globally to keep you under 2M/month.
+# Apply with: gcloud compute security-policies import localmesh-rate-limit --file=gcp-armor-policy.yaml
+
+description: LocalMesh API rate limiting policy for GCP free tier
+name: localmesh-rate-limit
+type: CLOUD_ARMOR
+rules:
+  # Rule 1: Throttle any single IP making more than 60 req/min
+  - action: throttle
+    description: Per-IP rate limit - 60 req/min
+    match:
+      versionedExpr: SRC_IPS_V1
+      config:
+        srcIpRanges:
+          - '*'
+    rateLimitOptions:
+      rateLimitThreshold:
+        count: 60
+        intervalSec: 60
+      conformAction: allow
+      exceedAction: deny-429
+      enforceOnKey: IP
+    priority: 100
+
+  # Rule 2: Global rate limit — cap total traffic at 1500 req/min (~2M/month)
+  - action: throttle
+    description: Global throughput cap to stay within GCP free tier
+    match:
+      versionedExpr: SRC_IPS_V1
+      config:
+        srcIpRanges:
+          - '*'
+    rateLimitOptions:
+      rateLimitThreshold:
+        count: 1500
+        intervalSec: 60
+      conformAction: allow
+      exceedAction: deny-429
+      enforceOnKey: ALL
+    priority: 200
+
+  # Default: allow
+  - action: allow
+    description: Default allow
+    match:
+      versionedExpr: SRC_IPS_V1
+      config:
+        srcIpRanges:
+          - '*'
+    priority: 2147483647

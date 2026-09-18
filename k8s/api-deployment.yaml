@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: localmesh/api:latest
+          image: ghcr.io/mrugajaj/localmesh-api:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http

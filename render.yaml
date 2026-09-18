@@ -1,0 +1,24 @@
+# Render.com service definition
+# This file auto-configures Render when you connect your GitHub repo.
+# Docs: https://render.com/docs/render-yaml-spec
+
+services:
+  - type: web
+    name: localmesh-api
+    runtime: docker
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    region: oregon
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: POSTGRES_URL
+        sync: false          # You fill this in Render dashboard
+      - key: POSTGRES_USER
+        sync: false
+      - key: POSTGRES_PASSWORD
+        sync: false
+      - key: REDIS_URL
+        sync: false
+      - key: PORT
+        value: "8080"

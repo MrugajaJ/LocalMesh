@@ -1,0 +1,110 @@
+name: Build & Push Docker Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'api/**'
+      - 'controller/**'
+      - 'sidecar/**'
+      - 'proto/**'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  build-api:
+    name: Build API Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build API JAR
+        run: mvn package -DskipTests -q -f api/pom.xml
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push API image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./api
+          file: ./api/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/localmesh-api:latest
+            ghcr.io/${{ github.repository_owner }}/localmesh-api:${{ github.sha }}
+
+  build-controller:
+    name: Build Controller Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Controller image
+        uses: docker/build-push-action@v5
+        with:
+          # Build context = repo root (controller Dockerfile references ../proto)
+          context: .
+          file: ./controller/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/localmesh-controller:latest
+            ghcr.io/${{ github.repository_owner }}/localmesh-controller:${{ github.sha }}
+
+  build-sidecar:
+    name: Build Sidecar Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & Push Sidecar image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./sidecar/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/localmesh-sidecar:latest
+            ghcr.io/${{ github.repository_owner }}/localmesh-sidecar:${{ github.sha }}

@@ -1,5 +1,10 @@
 ---
 # Secret for DB + Redis credentials
+# Fill these in with your real values before applying:
+#   POSTGRES_URL  → from Neon dashboard (neon.tech) — format: jdbc:postgresql://HOST/localmesh?sslmode=require
+#   POSTGRES_USER → from Neon dashboard
+#   POSTGRES_PASSWORD → from Neon dashboard
+#   REDIS_URL     → from Upstash dashboard (upstash.com) — format: rediss://default:PASSWORD@HOST:PORT
 apiVersion: v1
 kind: Secret
 metadata:
@@ -7,10 +12,10 @@ metadata:
   namespace: default
 type: Opaque
 stringData:
-  POSTGRES_URL:      "jdbc:postgresql://postgres:5432/localmesh"
-  POSTGRES_USER:     "localmesh"
-  POSTGRES_PASSWORD: "localmesh"
-  REDIS_URL:         "redis://redis:6379"
+  POSTGRES_URL:      "REPLACE_WITH_NEON_JDBC_URL"
+  POSTGRES_USER:     "REPLACE_WITH_NEON_USER"
+  POSTGRES_PASSWORD: "REPLACE_WITH_NEON_PASSWORD"
+  REDIS_URL:         "REPLACE_WITH_UPSTASH_REDIS_URL"
 
 ---
 # LocalMesh Controller Deployment
@@ -36,7 +41,7 @@ spec:
       serviceAccountName: localmesh-controller
       containers:
         - name: controller
-          image: localmesh/controller:latest
+          image: ghcr.io/mrugajaj/localmesh-controller:latest
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
