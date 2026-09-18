@@ -3,26 +3,21 @@ name: Build & Push Docker Images
 on:
   push:
     branches: [main]
-    paths:
-      - 'api/**'
-      - 'controller/**'
-      - 'sidecar/**'
-      - 'proto/**'
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  build-api:
-    name: Build API Image
+  build-and-push:
+    name: Build JARs and Push Container Images
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Java 21
@@ -32,79 +27,49 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Build API JAR
-        run: mvn package -DskipTests -q -f api/pom.xml
+      - name: Set lowercase repository owner
+        run: |
+          echo "IMAGE_PREFIX=ghcr.io/$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
 
-      - name: Log in to GHCR
+      - name: Build all Maven artifacts
+        run: |
+          mvn -f api/pom.xml package -DskipTests -q
+          mvn -f controller/pom.xml package -DskipTests -q
+          mvn -f sidecar/pom.xml package -DskipTests -q
+
+      - name: Log in to GitHub Container Registry (GHCR)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build & Push API image
+      - name: Build & Push API Image
         uses: docker/build-push-action@v5
         with:
           context: ./api
           file: ./api/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/localmesh-api:latest
-            ghcr.io/${{ github.repository_owner }}/localmesh-api:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/localmesh-api:latest
+            ${{ env.IMAGE_PREFIX }}/localmesh-api:${{ github.sha }}
 
-  build-controller:
-    name: Build Controller Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push Controller image
+      - name: Build & Push Controller Image
         uses: docker/build-push-action@v5
         with:
-          # Build context = repo root (controller Dockerfile references ../proto)
-          context: .
+          context: ./controller
           file: ./controller/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/localmesh-controller:latest
-            ghcr.io/${{ github.repository_owner }}/localmesh-controller:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/localmesh-controller:latest
+            ${{ env.IMAGE_PREFIX }}/localmesh-controller:${{ github.sha }}
 
-  build-sidecar:
-    name: Build Sidecar Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build & Push Sidecar image
+      - name: Build & Push Sidecar Image
         uses: docker/build-push-action@v5
         with:
-          context: .
+          context: ./sidecar
           file: ./sidecar/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/localmesh-sidecar:latest
-            ghcr.io/${{ github.repository_owner }}/localmesh-sidecar:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}/localmesh-sidecar:latest
+            ${{ env.IMAGE_PREFIX }}/localmesh-sidecar:${{ github.sha }}
