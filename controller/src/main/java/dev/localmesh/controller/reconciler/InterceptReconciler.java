@@ -156,9 +156,8 @@ public class InterceptReconciler {
             CoreV1Api coreApi = new CoreV1Api(apiClient);
 
             // Find pods for this service (label selector: app=<service-name>)
-            V1PodList podList = coreApi.listNamespacedPod(namespace)
-                    .labelSelector("app=" + service)
-                    .execute();
+            V1PodList podList = coreApi.listNamespacedPod(
+                    namespace, null, null, null, null, "app=" + service, null, null, null, null, null);
 
             if (podList.getItems().isEmpty()) {
                 log.warn("No pods found for service {} in namespace {}", service, namespace);
@@ -218,7 +217,7 @@ public class InterceptReconciler {
                 sidecarJson(interceptId, targetPort, tunnelEndpoint));
 
         coreApi.patchNamespacedPod(pod.getMetadata().getName(), namespace,
-                new io.kubernetes.client.custom.V1Patch(patch)).execute();
+                new io.kubernetes.client.custom.V1Patch(patch), null, null, null, null, null);
     }
 
     private String sidecarJson(String interceptId, int targetPort, String tunnelEndpoint) {
@@ -252,9 +251,8 @@ public class InterceptReconciler {
 
         try {
             CoreV1Api coreApi = new CoreV1Api(apiClient);
-            V1PodList pods = coreApi.listNamespacedPod(namespace)
-                    .labelSelector("app=" + service)
-                    .execute();
+            V1PodList pods = coreApi.listNamespacedPod(
+                    namespace, null, null, null, null, "app=" + service, null, null, null, null, null);
 
             for (V1Pod pod : pods.getItems()) {
                 // Remove sidecar from the pod spec via strategic merge patch
@@ -263,7 +261,7 @@ public class InterceptReconciler {
                               "initContainers":[{"name":"%s","$patch":"delete"}]}}
                     """.formatted(SIDECAR_CONTAINER_NAME, INIT_CONTAINER_NAME);
                 coreApi.patchNamespacedPod(pod.getMetadata().getName(), namespace,
-                        new io.kubernetes.client.custom.V1Patch(patch)).execute();
+                        new io.kubernetes.client.custom.V1Patch(patch), null, null, null, null, null);
             }
 
             interceptRepository.markTornDown(name, namespace);

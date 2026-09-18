@@ -39,8 +39,11 @@ public class SessionRoutes {
 
         // POST /api/sessions — create session
         post("/api/sessions", (req, res) -> {
-            Map<?, ?> body = gson.fromJson(req.body(), Map.class);
-            String developerName = (String) body.getOrDefault("developerName", "anonymous");
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = gson.fromJson(req.body(), Map.class);
+            String developerName = body != null && body.get("developerName") != null
+                    ? body.get("developerName").toString()
+                    : "anonymous";
 
             String id = UUID.randomUUID().toString();
             LocalDateTime now = LocalDateTime.now();

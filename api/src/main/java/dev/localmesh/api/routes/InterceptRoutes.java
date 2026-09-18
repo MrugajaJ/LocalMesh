@@ -38,10 +38,11 @@ public class InterceptRoutes {
 
         // POST /api/intercepts — create intercept
         post("/api/intercepts", (req, res) -> {
-            Map<?, ?> body       = gson.fromJson(req.body(), Map.class);
+            @SuppressWarnings("unchecked")
+            Map<String, Object> body = gson.fromJson(req.body(), Map.class);
             String sessionId     = (String) body.get("sessionId");
             String serviceName   = (String) body.get("serviceName");
-            String namespace     = (String) body.getOrDefault("namespace", "default");
+            String namespace     = body.get("namespace") != null ? body.get("namespace").toString() : "default";
             int localPort        = ((Number) body.get("localPort")).intValue();
 
             String interceptId = UUID.randomUUID().toString();
@@ -79,8 +80,9 @@ public class InterceptRoutes {
                         .where(field("id").eq(UUID.fromString(interceptId)))
                         .fetchOne();
                 if (row != null) {
-                    status        = row.get(field("status", String.class));
-                    tunnelEndpoint = row.get(field("tunnel_endpoint", String.class), "");
+                    status = row.get(field("status", String.class));
+                    String endpoint = row.get(field("tunnel_endpoint", String.class));
+                    tunnelEndpoint = endpoint != null ? endpoint : "";
                     if ("ACTIVE".equals(status) || "FAILED".equals(status)) break;
                 }
             }
