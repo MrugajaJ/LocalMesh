@@ -1,10 +1,23 @@
+# ── Stage 1: Build ────────────────────────────────────────────────────────────
+FROM eclipse-temurin:21-jdk-alpine AS builder
+WORKDIR /build
+
+# Copy Maven wrapper and pom first (for layer caching)
+COPY pom.xml .
+RUN apk add --no-cache maven && mvn dependency:go-offline -q
+
+# Copy source and build the fat JAR
+COPY src ./src
+RUN mvn package -DskipTests -q
+
+# ── Stage 2: Run ──────────────────────────────────────────────────────────────
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
 RUN addgroup -S localmesh && adduser -S localmesh -G localmesh
 USER localmesh
 
-COPY target/localmesh-api.jar app.jar
+COPY --from=builder /build/target/localmesh-api.jar app.jar
 
 EXPOSE 8080
 

@@ -8,17 +8,17 @@ services:
     runtime: docker
     dockerfilePath: ./api/Dockerfile
     dockerContext: ./api
-    region: oregon
+    region: singapore
     plan: free
     healthCheckPath: /health
     envVars:
       - key: POSTGRES_URL
-        sync: false          # You fill this in Render dashboard
+        sync: false          # jdbc:postgresql://... (fill in Render dashboard)
       - key: POSTGRES_USER
         sync: false
       - key: POSTGRES_PASSWORD
         sync: false
       - key: REDIS_URL
-        sync: false
-      - key: PORT
+        sync: false          # rediss://... (fill in Render dashboard)
+      - key: SERVER_PORT
         value: "8080"
