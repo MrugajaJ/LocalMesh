@@ -3,11 +3,11 @@ FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
 
 # Copy Maven wrapper and pom first (for layer caching)
-COPY pom.xml .
+COPY api/pom.xml .
 RUN apk add --no-cache maven && mvn dependency:go-offline -q
 
 # Copy source and build the fat JAR
-COPY src ./src
+COPY api/src ./src
 RUN mvn package -DskipTests -q
 
 # ── Stage 2: Run ──────────────────────────────────────────────────────────────

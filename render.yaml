@@ -7,7 +7,7 @@ services:
     name: localmesh-api
     runtime: docker
     dockerfilePath: ./api/Dockerfile
-    dockerContext: ./api
+    dockerContext: .
     region: singapore
     plan: free
     healthCheckPath: /health
